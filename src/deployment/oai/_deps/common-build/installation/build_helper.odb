@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: LicenseRef-CSSL-1.0
+
+#-------------------------------------------------------------------------------
+#arg1 is force (0 or 1) (no interactive script)
+#arg2 is debug (0 or 1) (install debug libraries)
+install_odb() {
+  echo "Starting to install odb"
+  if [ $1 -eq 0 ]; then
+    read -p "Do you want to install odb ? <y/N> " prompt
+    OPTION=""
+  else
+    prompt='y'
+    OPTION="-y"
+  fi
+
+  if [[ $prompt =~ [yY](es)* ]]
+  then
+    C_URL=https://download.build2.org/0.17.0/build2-install-0.17.0.sh
+    echo "Install ODB runtime library from $C_URL"
+    pushd /tmp
+    if [[ $prompt =~ [yY](es)* ]]
+    then
+      $SUDO rm -rf build2
+    fi
+      mkdir build2 && cd build2
+      curl -sSfO $C_URL
+      echo "download done"
+      sleep 4
+      sh build2-install-0.17.0.sh --yes --no-bdep --no-modules --trust yes
+      echo "build2 installation complete"
+      sleep 4
+      which bpkg
+      sleep 4
+      cd ..
+
+      echo "Starting to install odb"
+      mkdir odb-build && cd odb-build
+
+      bpkg create -d libodb-gcc cc     \
+        config.cxx=g++                 \
+        config.cc.coptions=-O3         \
+        config.install.root=/usr/local
+
+      cd libodb-gcc
+      echo "Build odb runtime libraries"
+      bpkg add https://pkg.cppget.org/1/beta
+      bpkg fetch --trust-yes
+      bpkg build libodb --yes
+      bpkg build libodb-mysql --yes
+      echo "Install odb runtime libraries"
+      sleep 4
+      $SUDO bpkg install --all --recursive
+
+  fi
+  echo "odb installation complete"
+  return 0
+}
