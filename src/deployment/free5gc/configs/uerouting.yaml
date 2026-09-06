@@ -1,0 +1,11 @@
+info:
+  version: 1.0.7
+  description: UE routing configuration for fuzzing
+
+ueRoutingInfo:
+  UE-gNB-1:
+    members:
+      - imsi-208930000000031
+    topology:
+      - A: gNB1
+        B: UPF

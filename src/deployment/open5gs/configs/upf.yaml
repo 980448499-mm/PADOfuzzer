@@ -1,0 +1,20 @@
+logger:
+  file:
+    path: /var/log/open5gs/upf.log
+  level: info
+
+upf:
+  pfcp:
+    server:
+      - address: 172.23.0.40
+    client:
+      smf:
+        - address: 172.23.0.30
+  gtpu:
+    server:
+      - address: 172.23.0.40
+  session:
+    - subnet: 10.45.0.0/16
+      gateway: 10.45.0.1
+    - subnet: 2001:db8:cafe::/48
+      gateway: 2001:db8:cafe::1

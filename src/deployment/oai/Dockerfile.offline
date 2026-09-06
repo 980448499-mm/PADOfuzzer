@@ -1,0 +1,110 @@
+# Comprehensive offline build with all deps downloaded locally
+ARG BASE_IMAGE=ubuntu:22.04
+
+FROM ${BASE_IMAGE} AS builder
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG BUILD_JOBS=2
+ARG BUILD_NFS=nrf
+ENV BUILD_JOBS=${BUILD_JOBS} \
+    BUILD_NFS=${BUILD_NFS} \
+    CMAKE_BUILD_PARALLEL_LEVEL=${BUILD_JOBS}
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential cmake ca-certificates pkg-config \
+    libssl-dev libcurl4-openssl-dev libmysqlclient-dev \
+    libconfig++-dev libboost-all-dev libevent-dev \
+    libgnutls28-dev libgcrypt-dev libsctp-dev \
+    libmicrohttpd-dev nettle-dev libfmt-dev \
+    libyaml-cpp-dev rapidjson-dev nlohmann-json3-dev libcrypto++-dev \
+    gcc-12 g++-12 libnghttp2-dev libev-dev libmongoc-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# ── CPR (HTTP client) ──
+COPY _deps/cpr/ /tmp/cpr/
+RUN cd /tmp/cpr && mkdir -p build && cd build \
+    && cmake .. -DCPR_USE_SYSTEM_CURL=ON -DCPR_BUILD_TESTS=OFF \
+    && cmake --build . --parallel "${BUILD_JOBS}" \
+    && cmake --install . \
+    && rm -rf /tmp/cpr
+
+# ── Pistache (HTTP server, used by OAI SBI API) ──
+COPY _deps/pistache/ /tmp/pistache/
+RUN cd /tmp/pistache && mkdir -p _build && cd _build \
+    && cmake .. -DCMAKE_BUILD_TYPE=Release \
+        -DPISTACHE_BUILD_EXAMPLES=false \
+        -DPISTACHE_BUILD_TESTS=false \
+        -DPISTACHE_BUILD_DOCS=false \
+    && make -j"${BUILD_JOBS}" \
+    && make install \
+    && rm -rf /tmp/pistache
+
+# ── nghttp2 v1.43 (includes asio C++ headers + library) ──
+COPY _deps/nghttp2/ /tmp/nghttp2/
+RUN cd /tmp/nghttp2 \
+    && cmake -DCMAKE_BUILD_TYPE=Release \
+        -DENABLE_LIB_ONLY=ON \
+        -DENABLE_ASIO_LIB=ON \
+        -DENABLE_STATIC_LIB=ON \
+        -DENABLE_SHARED_LIB=ON \
+    && make -j"${BUILD_JOBS}" \
+    && make install \
+    && cp -r src/includes/nghttp2/asio_http2*.h /usr/local/include/nghttp2/ \
+    && rm -rf /tmp/nghttp2
+
+# ── jwt-cpp (header-only JWT library) ──
+COPY _deps/jwt-cpp/include/jwt/ /usr/local/include/jwt/
+
+# ── spdlog (from source, replaces apt libspdlog-dev — matches OAI expected version) ──
+COPY _deps/spdlog/ /tmp/spdlog/
+RUN cd /tmp/spdlog && cmake -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DSPDLOG_BUILD_SHARED=ON \
+    && make -j"${BUILD_JOBS}" && make install && rm -rf /tmp/spdlog
+
+# ── Common shared dependencies (common-src / common-build) ──
+COPY _deps/common-src/ /build/common-src/
+COPY _deps/common-build/ /build/common-build/
+
+# ── Build OAI NFs from patched sources ──
+COPY component/ /build/component/
+COPY build_nfs.sh /build/
+# Create symlinks so each NF can find common-src / common-build
+RUN for d in /build/component/oai-*; do \
+      nf=$(basename "$d"); \
+      ln -sf /build/common-src "$d/common-src"; \
+      ln -sf /build/common-build "$d/common-build"; \
+      echo "Linked common for $nf"; \
+    done
+RUN chmod +x /build/build_nfs.sh && /build/build_nfs.sh
+
+# ─── Runtime stage ─────────────────────────────────────────────
+FROM ${BASE_IMAGE}
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libssl3 libcurl4 libmysqlclient21 libconfig++9v5 \
+    libboost-system1.74.0 libboost-thread1.74.0 \
+    libevent-2.1-7 libevent-core-2.1-7 libevent-extra-2.1-7 \
+    libgnutls30 libgcrypt20 libsctp1 \
+    libnghttp2-14 libmicrohttpd12 libspdlog1 \
+    libyaml-cpp0.7 libfmt8 libnettle8 \
+    lksctp-tools iproute2 tcpdump gdb valgrind \
+    libasan6 libasan8 libev4 libboost-date-time1.74.0 libcrypto++8 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /etc/oai /var/log/oai
+
+COPY --from=builder /usr/local/lib/ /usr/local/lib/
+RUN ldconfig
+
+COPY --from=builder /build/build/ /tmp/oai_build/
+COPY install_bins.sh /tmp/
+RUN chmod +x /tmp/install_bins.sh && /tmp/install_bins.sh
+
+COPY configs/ /etc/oai/
+
+WORKDIR /etc/oai

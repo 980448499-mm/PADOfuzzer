@@ -1,0 +1,128 @@
+-- NGAP Common Data Types
+-- TS 38.413 V17.4.0 (2023-01)
+-- Extracted types used by NGAP codec for encoding/decoding
+
+NGAP-PROTOCOL-DEFINITIONS ::= BEGIN
+
+-- ─── Basic types ───────────────────────────────────────────────
+
+AMF-UE-NGAP-ID ::= INTEGER (0..1099511627775)
+
+RAN-UE-NGAP-ID ::= INTEGER (0..4294967295)
+
+ProcedureCode ::= INTEGER (0..255)
+
+ProtocolIE-ID ::= INTEGER (0..65535)
+
+Criticality ::= ENUMERATED {reject, ignore, notify}
+
+TriggeringMessage ::= ENUMERATED {initiating-message, successful-outcome, unsuccessful-outcome}
+
+Presence ::= ENUMERATED {optional, conditional, mandatory}
+
+-- ─── Common IEs ────────────────────────────────────────────────
+
+NAS-PDU ::= OCTET STRING (SIZE (1..4096))
+
+GUAMI ::= SEQUENCE {
+    pLMNIdentity  PLMNIdentity,
+    aMFRegionID   AMFRegionID,
+    aMFSetID      AMFSetID,
+    aMFPointer    AMFPointer
+}
+
+PLMNIdentity ::= OCTET STRING (SIZE (3))
+
+AMFRegionID ::= BIT STRING (SIZE (8))
+
+AMFSetID ::= BIT STRING (SIZE (10))
+
+AMFPointer ::= BIT STRING (SIZE (6))
+
+-- ─── UE-associated IEs ─────────────────────────────────────────
+
+UEAggregateMaximumBitRate ::= SEQUENCE {
+    uEaggregateMaximumBitRateDownlink  BitRate,
+    uEaggregateMaximumBitRateUplink    BitRate
+}
+
+BitRate ::= INTEGER (0..4000000000000)
+
+-- ─── PDU Session IEs ──────────────────────────────────────────
+
+PDUSessionID ::= INTEGER (0..255)
+
+PDUSessionType ::= ENUMERATED {ipv4, ipv6, ipv4v6, ethernet, unstructured}
+
+QosFlowIdentifier ::= INTEGER (0..63)
+
+-- ─── NSSAI ────────────────────────────────────────────────────
+
+S-NSSAI ::= SEQUENCE {
+    sST  SST,
+    sD   SD OPTIONAL
+}
+
+SST ::= OCTET STRING (SIZE (1))
+
+SD ::= OCTET STRING (SIZE (3))
+
+-- ─── Transport Layer Address ──────────────────────────────────
+
+TransportLayerAddress ::= BIT STRING (SIZE (1..160, ...))
+
+GTP-TEI ::= OCTET STRING (SIZE (4))
+
+-- ─── Cause ────────────────────────────────────────────────────
+
+Cause ::= CHOICE {
+    radioNetwork       CauseRadioNetwork,
+    transport          CauseTransport,
+    nas                CauseNas,
+    protocol           CauseProtocol,
+    misc               CauseMisc
+}
+
+CauseRadioNetwork ::= ENUMERATED {
+    unspecified,
+    txl2relocoverall-expiry,
+    successful-handover,
+    release-due-to-ngran-generated-reason,
+    ...
+}
+
+CauseTransport ::= ENUMERATED {
+    transport-resource-unavailable,
+    unspecified,
+    ...
+}
+
+CauseNas ::= ENUMERATED {
+    normal-release,
+    authentication-failure,
+    deregister,
+    unspecified,
+    ...
+}
+
+CauseProtocol ::= ENUMERATED {
+    transfer-syntax-error,
+    abstract-syntax-error-reject,
+    abstract-syntax-error-ignore-and-notify,
+    message-not-compatible-with-receiver-state,
+    semantic-error,
+    abstract-syntax-error-falsely-constructed-message,
+    unspecified,
+    ...
+}
+
+CauseMisc ::= ENUMERATED {
+    control-processing-overload,
+    not-enough-user-plane-processing-resources,
+    hardware-failure,
+    om-intervention,
+    unspecified,
+    ...
+}
+
+END

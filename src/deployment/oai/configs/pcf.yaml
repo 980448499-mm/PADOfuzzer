@@ -1,0 +1,33 @@
+log_level:
+  general: info
+
+register_nf:
+  general: yes
+
+http_version: 1
+
+nfs:
+  nrf:
+    host: 172.25.0.10
+    sbi:
+      port: 80
+      api_version: v1
+      interface_name: eth0
+  pcf:
+    host: 172.25.0.100
+    sbi:
+      port: 80
+      api_version: v1
+      interface_name: eth0
+
+database:
+  host: 172.25.0.120
+  user: root
+  type: mysql
+  password: oai_password
+  database_name: oai_db
+  generate_random: true
+  connection_timeout: 300
+
+pcf:
+  enable_policy_provisioning_api: yes

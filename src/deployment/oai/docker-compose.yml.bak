@@ -1,0 +1,30 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: fuzzing-oai-mysql
+    networks: { fuzzing-oai: { ipv4_address: 172.25.0.120 } }
+    environment: { MYSQL_ROOT_PASSWORD: oai_password, MYSQL_DATABASE: oai_db }
+    volumes: [ oai_mysql_data:/var/lib/mysql ]
+
+  nrf:
+    image: oai-nrf-official:v2.2.0
+    container_name: fuzzing-oai-nrf
+    restart: "no"
+    networks: { fuzzing-oai: { ipv4_address: 172.25.0.10 } }
+    depends_on: [ mysql ]
+    volumes: [ ./configs/nrf.conf:/openair-nrf/etc/nrf.conf:ro ]
+    command: ["/openair-nrf/bin/oai_nrf", "-c", "/openair-nrf/etc/nrf.conf", "-o"]
+
+  udm:
+    image: oai-5gc-fuzz:latest
+    container_name: fuzzing-oai-udm
+    restart: "no"
+    networks: { fuzzing-oai: { ipv4_address: 172.25.0.60 } }
+    depends_on: [ nrf ]
+    volumes: [ ./configs/udm.conf:/etc/oai/udm.conf:ro ]
+    command: ["/usr/local/bin/oai_udm", "-c", "/etc/oai/udm.conf"]
+
+networks:
+  fuzzing-oai: { name: fuzzing-oai, external: true }
+volumes:
+  oai_mysql_data:

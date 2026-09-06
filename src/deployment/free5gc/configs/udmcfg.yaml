@@ -1,0 +1,30 @@
+info:
+  version: 1.0.3
+  description: UDM configuration for fuzzing
+
+configuration:
+  udmName: UDM-fuzzing
+  sbi:
+    scheme: http
+    registerIPv4: 172.24.0.60
+    bindingIPv4: 172.24.0.60
+    port: 8000
+  serviceNameList:
+    - nudm-ueau
+    - nudm-uecm
+    - nudm-sdm
+    - nudm-ee
+    - nudm-pp
+  plmnSupportList:
+    - plmnId:
+        mcc: "208"
+        mnc: "93"
+      snssaiList:
+        - sst: 1
+          sd: "010203"
+  nrfUri: http://172.24.0.10:8000
+
+logger:
+  enable: true
+  reportCaller: true
+  level: info

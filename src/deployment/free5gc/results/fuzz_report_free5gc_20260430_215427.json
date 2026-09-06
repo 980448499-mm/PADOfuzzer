@@ -1,0 +1,43 @@
+{
+  "campaign": {
+    "target": "free5GC v3.4.x",
+    "duration_seconds": 1800.2511715888977,
+    "duration_hours": 0.5000697698858049,
+    "requests_sent": 46,
+    "request_rate": 0.025551990036701656
+  },
+  "crashes": {
+    "total": 1,
+    "by_nf": {
+      "upf": 1
+    },
+    "details": [
+      {
+        "container": "fuzzing-free5gc-upf",
+        "nf": "upf",
+        "status": "exited",
+        "time": 1777555468.6425507,
+        "batch": 10,
+        "logs": "\t\tForwarder: (string) (len=5) \"gtp5g\",\n\t\tIfList: ([]factory.IfInfo) (len=1 cap=1) {\n\t\t\t(factory.IfInfo) {\n\t\t\t\tAddr: (string) (len=11) \"172.24.0.40\",\n\t\t\t\tType: (string) (len=2) \"N3\",\n\t\t\t\tName: (string) \"\",\n\t\t\t\tIfName: (string) \"\",\n\t\t\t\tMTU: (uint32) 0\n\t\t\t}\n\t\t}\n\t}),\n\tDnnList: ([]factory.DnnList) (len=1 cap=1) {\n\t\t(factory.DnnList) {\n\t\t\tDnn: (string) (len=8) \"internet\",\n\t\t\tCidr: (string) (len=12) \"10.60.0.0/16\",\n\t\t\tNatIfName: (string) \"\"\n\t\t}\n\t},\n\tLogger: (*factory.Logger)(0xc00059b7e0)({\n\t\tEnable: (bool) false,\n\t\tLevel: (string) (len=4) \"info\",\n\t\tReportCaller: (bool) false\n\t})\n})\n2026-04-30T13:15:25.779525645Z\u001b[36m [INFO][UPF][CFG] \u001b[0m==================================================\n2026-04-30T13:15:25.779528894Z\u001b[36m [INFO][UPF][Main] \u001b[0mLog level is set to [info]\n2026-04-30T13:15:25.779530932Z\u001b[36m [INFO][UPF][Main] \u001b[0mReport Caller is set to [false]\n2026-04-30T13:15:25.779964353Z\u001b[36m [INFO][UPF][Main] \u001b[0mstarting Gtpu Forwarder [gtp5g]\n2026-04-30T13:15:25.779979679Z\u001b[36m [INFO][UPF][Main] \u001b[0mGTP Address: \"172.24.0.40:2152\"\n2026-04-30T13:15:25.781866243Z\u001b[31m [ERRO][UPF][Main] \u001b[0mUPF Cli Run Error: open Gtp5g: open link: create: operation not supported\n"
+      }
+    ]
+  },
+  "errors": {
+    "total": 915354,
+    "by_type": {
+      "connection_error": 915354
+    }
+  },
+  "operations_tested": 8,
+  "mutation_strategies": [
+    "type_confusion",
+    "boundary_ints",
+    "null_required",
+    "empty_values",
+    "oversized",
+    "extra_fields",
+    "sql_injection",
+    "special_chars",
+    "path_traversal_uri"
+  ]
+}

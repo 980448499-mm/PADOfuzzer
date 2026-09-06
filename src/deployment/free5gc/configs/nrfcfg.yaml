@@ -1,0 +1,23 @@
+# NRF — NF Repository Function (free5GC)
+info:
+  version: 1.0.2
+  description: NRF configuration for fuzzing
+
+configuration:
+  MongoDBName: free5gc
+  MongoDBUrl: mongodb://172.24.0.120:27017
+  sbi:
+    scheme: http
+    registerIPv4: 172.24.0.10
+    bindingIPv4: 172.24.0.10
+    port: 8000
+  DefaultPlmnId:
+    mcc: "208"
+    mnc: "93"
+  DefaultServiceIP: 172.24.0.10
+  serviceNameList:
+    - nnrf-nfm
+    - nnrf-disc
+
+logger:
+  level: info

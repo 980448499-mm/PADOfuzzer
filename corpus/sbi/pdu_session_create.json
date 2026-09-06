@@ -1,0 +1,8 @@
+:method: POST
+:path: /
+:scheme: https
+:authority: 5gc.local
+content-type: application/json
+content-length: 2
+
+{}

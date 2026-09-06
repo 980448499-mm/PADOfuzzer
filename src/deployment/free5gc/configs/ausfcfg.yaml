@@ -1,0 +1,23 @@
+info:
+  version: 1.0.3
+  description: AUSF configuration for fuzzing
+
+configuration:
+  ausfName: AUSF-fuzzing
+  sbi:
+    scheme: http
+    registerIPv4: 172.24.0.50
+    bindingIPv4: 172.24.0.50
+    port: 8000
+  serviceNameList:
+    - nausf-auth
+  nrfUri: http://172.24.0.10:8000
+  plmnSupportList:
+    - mcc: "208"
+      mnc: "93"
+  groupId: ausfGroup001
+
+logger:
+  enable: true
+  reportCaller: true
+  level: info

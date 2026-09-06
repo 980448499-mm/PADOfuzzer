@@ -1,0 +1,30 @@
+info:
+  version: 1.0.2
+  description: NSSF configuration for fuzzing
+
+configuration:
+  nssfName: NSSF-fuzzing
+  sbi:
+    scheme: http
+    registerIPv4: 172.24.0.90
+    bindingIPv4: 172.24.0.90
+    port: 8000
+  serviceNameList:
+    - nnssf-nsselection
+    - nnssf-nssaiavailability
+  nrfUri: http://172.24.0.10:8000
+  supportedPlmnList:
+    - mcc: "208"
+      mnc: "93"
+  supportedNssaiInPlmnList:
+    - plmnId:
+        mcc: "208"
+        mnc: "93"
+      supportedSnssaiList:
+        - sst: 1
+          sd: "010203"
+        - sst: 1
+          sd: "112233"
+
+logger:
+  level: info

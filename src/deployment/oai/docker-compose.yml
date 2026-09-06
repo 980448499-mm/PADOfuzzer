@@ -1,0 +1,132 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: fuzzing-oai-mysql
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "2"
+    command: ["--innodb-buffer-pool-size=128M", "--performance-schema=OFF"]
+    networks: { fuzzing-oai: { ipv4_address: 172.25.0.120 } }
+    environment: { MYSQL_ROOT_PASSWORD: oai_password, MYSQL_DATABASE: oai_db }
+    volumes: [ oai_mysql_data:/var/lib/mysql ]
+
+  nrf:
+    image: oai-nrf-official:v2.2.0
+    container_name: fuzzing-oai-nrf
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "2"
+    restart: always
+    networks: { fuzzing-oai: { ipv4_address: 172.25.0.10 } }
+    depends_on: [ mysql ]
+    volumes: [ ./configs/nrf.conf:/openair-nrf/etc/nrf.conf:ro ]
+    command: ["/openair-nrf/bin/oai_nrf", "-c", "/openair-nrf/etc/nrf.conf", "-o"]
+
+  udm:
+    image: oai-5gc-fuzz:latest
+    container_name: fuzzing-oai-udm
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "2"
+    restart: always
+    networks: { fuzzing-oai: { ipv4_address: 172.25.0.60 } }
+    depends_on: [ nrf ]
+    volumes: [ ./configs/udm.conf:/etc/oai/udm.conf:ro ]
+    command: ["/usr/local/bin/oai_udm", "-c", "/etc/oai/udm.conf"]
+
+  udr:
+    image: oaisoftwarealliance/oai-udr:v2.2.0
+    container_name: fuzzing-oai-udr
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "2"
+    restart: always
+    networks: { fuzzing-oai: { ipv4_address: 172.25.0.70 } }
+    depends_on: [ nrf, mysql ]
+    volumes: [ ./configs/udr.conf:/openair-udr/etc/udr.conf:ro ]
+    command: ["/openair-udr/bin/oai_udr", "-c", "/openair-udr/etc/udr.conf"]
+
+  ausf:
+    image: oaisoftwarealliance/oai-ausf:v2.2.0
+    container_name: fuzzing-oai-ausf
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "2"
+    restart: always
+    networks: { fuzzing-oai: { ipv4_address: 172.25.0.50 } }
+    depends_on: [ nrf ]
+    volumes: [ ./configs/ausf.conf:/openair-ausf/etc/ausf.conf:ro ]
+    command: ["/openair-ausf/bin/oai_ausf", "-c", "/openair-ausf/etc/ausf.conf"]
+
+  amf:
+    image: oaisoftwarealliance/oai-amf:v2.2.0
+    container_name: fuzzing-oai-amf
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "2"
+    restart: always
+    networks: { fuzzing-oai: { ipv4_address: 172.25.0.20 } }
+    depends_on: [ nrf ]
+    volumes: [ ./configs/amf.conf:/openair-amf/etc/amf.conf:ro ]
+    command: ["/openair-amf/bin/oai_amf", "-c", "/openair-amf/etc/amf.conf"]
+    cap_add: [ NET_ADMIN ]
+
+  smf:
+    image: oaisoftwarealliance/oai-smf:v2.2.0
+    container_name: fuzzing-oai-smf
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "2"
+    restart: always
+    networks: { fuzzing-oai: { ipv4_address: 172.25.0.30 } }
+    depends_on: [ nrf, amf ]
+    volumes: [ ./configs/smf.conf:/openair-smf/etc/smf.conf:ro ]
+    command: ["/openair-smf/bin/oai_smf", "-c", "/openair-smf/etc/smf.conf"]
+    cap_add: [ NET_ADMIN ]
+
+  nssf:
+    image: oaisoftwarealliance/oai-nssf:v2.2.0
+    container_name: fuzzing-oai-nssf
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "2"
+    restart: always
+    networks: { fuzzing-oai: { ipv4_address: 172.25.0.90 } }
+    depends_on: [ nrf ]
+    volumes: [ ./configs/nssf.conf:/openair-nssf/etc/nssf.conf:ro ]
+    command: ["/openair-nssf/bin/oai_nssf", "-c", "/openair-nssf/etc/nssf.conf"]
+
+  pcf:
+    image: oaisoftwarealliance/oai-pcf:v2.2.0
+    container_name: fuzzing-oai-pcf
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "2"
+    restart: always
+    networks: { fuzzing-oai: { ipv4_address: 172.25.0.100 } }
+    depends_on: [ nrf, mysql ]
+    volumes: [ ./configs/pcf.yaml:/openair-pcf/etc/config.yaml:ro ]
+    command: ["/openair-pcf/bin/oai_pcf", "-c", "/openair-pcf/etc/config.yaml"]
+
+networks:
+  fuzzing-oai: { name: fuzzing-oai, external: true }
+volumes:
+  oai_mysql_data:

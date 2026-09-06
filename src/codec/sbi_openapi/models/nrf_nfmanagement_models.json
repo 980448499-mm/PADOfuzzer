@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NRF NFManagement Models",
+  "description": "JSON Schema models for NRF NF Management service (TS 29.510)",
+  "definitions": {
+    "NFProfile": {
+      "type": "object",
+      "required": ["nfInstanceId", "nfType", "nfStatus"],
+      "properties": {
+        "nfInstanceId": {"type": "string"},
+        "nfType": {"type": "string", "enum": ["AMF", "SMF", "UPF", "NRF", "UDM", "AUSF", "PCF", "NSSF", "BSF", "SCP"]},
+        "nfStatus": {"type": "string", "enum": ["REGISTERED", "SUSPENDED", "UNDISCOVERED"]},
+        "ipv4Addresses": {"type": "array", "items": {"type": "string", "format": "ipv4"}},
+        "fqdn": {"type": "string"},
+        "priority": {"type": "integer", "minimum": 0, "maximum": 65535},
+        "capacity": {"type": "integer", "minimum": 0, "maximum": 65535},
+        "load": {"type": "integer", "minimum": 0, "maximum": 100}
+      }
+    },
+    "NFService": {
+      "type": "object",
+      "required": ["serviceInstanceId", "serviceName"],
+      "properties": {
+        "serviceInstanceId": {"type": "string"},
+        "serviceName": {"type": "string"},
+        "versions": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/NFServiceVersion"}
+        }
+      }
+    },
+    "NFServiceVersion": {
+      "type": "object",
+      "properties": {
+        "apiVersionInUri": {"type": "string"},
+        "apiFullVersion": {"type": "string"}
+      }
+    },
+    "GUAMI": {
+      "type": "object",
+      "required": ["plmnId", "amfId"],
+      "properties": {
+        "plmnId": {"type": "string", "pattern": "^[0-9]{5,6}$"},
+        "amfId": {"type": "string"},
+        "amfRegionId": {"type": "string"},
+        "amfSetId": {"type": "string"},
+        "amfPointer": {"type": "string"}
+      }
+    },
+    "SNssai": {
+      "type": "object",
+      "required": ["sst"],
+      "properties": {
+        "sst": {"type": "integer", "minimum": 1, "maximum": 255},
+        "sd": {"type": "string", "pattern": "^[0-9A-Fa-f]{6}$"}
+      }
+    },
+    "PDUSessionCreateRequest": {
+      "type": "object",
+      "required": ["supi", "dnn", "sNssai", "pduSessionId"],
+      "properties": {
+        "supi": {"type": "string", "pattern": "^imsi-[0-9]{5,15}$"},
+        "dnn": {"type": "string"},
+        "sNssai": {"$ref": "#/definitions/SNssai"},
+        "pduSessionId": {"type": "integer", "minimum": 1, "maximum": 255},
+        "pduSessionType": {"type": "string", "enum": ["IPV4", "IPV6", "IPV4V6", "ETHERNET", "UNSTRUCTURED"]},
+        "sscMode": {"type": "string", "enum": ["SSC_MODE_1", "SSC_MODE_2", "SSC_MODE_3"]}
+      }
+    },
+    "UEAuthenticationRequest": {
+      "type": "object",
+      "required": ["supiOrSuci", "servingNetworkName"],
+      "properties": {
+        "supiOrSuci": {"type": "string"},
+        "servingNetworkName": {"type": "string"},
+        "authType": {"type": "string", "enum": ["5G_AKA", "EAP_AKA_PRIME"]}
+      }
+    },
+    "UECMRegistrationRequest": {
+      "type": "object",
+      "required": ["amfInstanceId", "guami"],
+      "properties": {
+        "amfInstanceId": {"type": "string"},
+        "guami": {"$ref": "#/definitions/GUAMI"},
+        "ratType": {"type": "string", "enum": ["NR", "EUTRA", "WLAN"]}
+      }
+    },
+    "ProblemDetails": {
+      "type": "object",
+      "properties": {
+        "type": {"type": "string", "format": "uri"},
+        "title": {"type": "string"},
+        "status": {"type": "integer"},
+        "detail": {"type": "string"},
+        "instance": {"type": "string"},
+        "cause": {"type": "string"}
+      }
+    }
+  }
+}

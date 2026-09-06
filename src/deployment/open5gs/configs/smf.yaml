@@ -1,0 +1,34 @@
+logger:
+  file:
+    path: /var/log/open5gs/smf.log
+  level: info
+
+smf:
+  sbi:
+    server:
+      - address: 172.23.0.30
+        port: 7777
+    client:
+      nrf:
+        - uri: http://172.23.0.10:7777
+  pfcp:
+    server:
+      - address: 172.23.0.30
+    client:
+      upf:
+        - address: 172.23.0.40
+  gtpc:
+    server:
+      - address: 172.23.0.30
+  gtpu:
+    server:
+      - address: 172.23.0.30
+  session:
+    - subnet: 10.45.0.0/16
+      gateway: 10.45.0.1
+    - subnet: 2001:db8:cafe::/48
+      gateway: 2001:db8:cafe::1
+  dns:
+    - 8.8.8.8
+    - 8.8.4.4
+  mtu: 1400

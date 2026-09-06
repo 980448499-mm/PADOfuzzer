@@ -1,0 +1,100 @@
+# OAI AMF/SMF/AUSF Coverage Build — extends Dockerfile.coverage pattern
+# Build all 3 in one builder stage, allowing some to fail gracefully.
+# Build: docker build -t oai-5gc-fuzz-coverage-extra:latest -f Dockerfile.coverage.extra .
+
+ARG BASE_IMAGE=ubuntu:22.04
+
+FROM ${BASE_IMAGE} AS builder
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG BUILD_JOBS=2
+ENV BUILD_JOBS=${BUILD_JOBS} \
+    CMAKE_BUILD_PARALLEL_LEVEL=${BUILD_JOBS}
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential cmake ca-certificates pkg-config \
+    libssl-dev libcurl4-openssl-dev libmysqlclient-dev \
+    libconfig++-dev libboost-all-dev libevent-dev \
+    libgnutls28-dev libgcrypt-dev libsctp-dev \
+    libspdlog-dev libmicrohttpd-dev nettle-dev libfmt-dev \
+    libyaml-cpp-dev rapidjson-dev nlohmann-json3-dev libcrypto++-dev \
+    gcc-12 g++-12 clang-14 lld-14 libnghttp2-dev libev-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# ── Build third-party deps from the existing image ──
+COPY _deps/cpr/ /tmp/cpr/
+RUN cd /tmp/cpr && mkdir -p build && cd build \
+    && cmake .. -DCPR_USE_SYSTEM_CURL=ON -DCPR_BUILD_TESTS=OFF \
+    && cmake --build . --parallel "${BUILD_JOBS}" \
+    && cmake --install . && rm -rf /tmp/cpr
+
+COPY _deps/pistache/ /tmp/pistache/
+RUN cd /tmp/pistache && mkdir -p _build && cd _build \
+    && cmake .. -DCMAKE_BUILD_TYPE=Release \
+        -DPISTACHE_BUILD_EXAMPLES=false -DPISTACHE_BUILD_TESTS=false \
+    && make -j"${BUILD_JOBS}" && make install && rm -rf /tmp/pistache
+
+COPY _deps/nghttp2/ /tmp/nghttp2/
+RUN cd /tmp/nghttp2 && cmake -DCMAKE_BUILD_TYPE=Release \
+        -DENABLE_LIB_ONLY=ON -DENABLE_ASIO_LIB=ON -DENABLE_STATIC_LIB=ON -DENABLE_SHARED_LIB=ON \
+    && make -j"${BUILD_JOBS}" && make install \
+    && cp -r src/includes/nghttp2/asio_http2*.h /usr/local/include/nghttp2/ \
+    && rm -rf /tmp/nghttp2
+
+COPY _deps/jwt-cpp/include/jwt/ /usr/local/include/jwt/
+
+COPY _deps/common-src/ /build/common-src/
+COPY _deps/common-build/ /build/common-build/
+
+# ── AMF, SMF, AUSF source ──
+COPY component/oai-amf/ /build/component/oai-amf/
+COPY component/oai-smf/ /build/component/oai-smf/
+COPY component/oai-ausf/ /build/component/oai-ausf/
+
+# Symlink common-src for each
+RUN for nf in amf smf ausf; do \
+        ln -sf /build/common-src /build/component/oai-$nf/common-src && \
+        ln -sf /build/common-build /build/component/oai-$nf/common-build; \
+    done
+
+# Build with coverage — tolerates per-NF failures
+COPY build_nfs_coverage.sh /build/
+RUN chmod +x /build/build_nfs_coverage.sh && BUILD_NFS="amf smf ausf" /build/build_nfs_coverage.sh
+
+# ─── Runtime stage ─────────────────────────────────────────────
+FROM ${BASE_IMAGE}
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libssl3 libcurl4 libmysqlclient21 libconfig++9v5 \
+    libboost-system1.74.0 libboost-thread1.74.0 \
+    libevent-2.1-7 libevent-core-2.1-7 libevent-extra-2.1-7 \
+    libgnutls30 libgcrypt20 libsctp1 libnghttp2-14 \
+    libmicrohttpd12 libspdlog1 libyaml-cpp0.7 libfmt8 libnettle8 \
+    lksctp-tools iproute2 tcpdump \
+    libasan6 libev4 libboost-date-time1.74.0 libcrypto++8 \
+    gcc-12 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /etc/oai /var/log/oai /tmp/coverage
+
+COPY --from=builder /usr/local/lib/ /usr/local/lib/
+RUN ldconfig
+
+# Copy whatever binaries were successfully built (may be subset of amf/smf/ausf)
+COPY --from=builder /usr/local/bin/oai_* /usr/local/bin/
+COPY --from=builder /build/built_nfs.txt /build/built_nfs.txt
+
+# Source + build trees for gcov to find .gcno files
+COPY --from=builder /build/component/oai-amf  /build/component/oai-amf/
+COPY --from=builder /build/component/oai-smf  /build/component/oai-smf/
+COPY --from=builder /build/component/oai-ausf /build/component/oai-ausf/
+COPY --from=builder /build/build /build/build
+
+ENV GCOV_PREFIX=/tmp/coverage \
+    GCOV_PREFIX_STRIP=0
+
+WORKDIR /etc/oai

@@ -1,0 +1,64 @@
+logger:
+  file:
+    path: /var/log/open5gs/nrf.log
+  level: info
+
+nrf:
+  serving:
+    - plmn_id:
+        mcc: 001
+        mnc: 01
+  sbi:
+    server:
+      - address: 0.0.0.0
+        port: 7777
+    client:
+      nrf:
+        - uri: http://172.23.0.10:7777
+
+# Add minimal SBI configs for other NFs to prevent init errors
+amf:
+  sbi:
+    server:
+      - address: 172.23.0.20
+        port: 7777
+smf:
+  sbi:
+    server:
+      - address: 172.23.0.30
+        port: 7777
+ausf:
+  sbi:
+    server:
+      - address: 172.23.0.50
+        port: 7777
+udm:
+  sbi:
+    server:
+      - address: 172.23.0.60
+        port: 7777
+udr:
+  sbi:
+    server:
+      - address: 172.23.0.70
+        port: 7777
+pcf:
+  sbi:
+    server:
+      - address: 172.23.0.80
+        port: 7777
+nssf:
+  sbi:
+    server:
+      - address: 172.23.0.90
+        port: 7777
+bsf:
+  sbi:
+    server:
+      - address: 172.23.0.100
+        port: 7777
+scp:
+  sbi:
+    server:
+      - address: 172.23.0.110
+        port: 7777

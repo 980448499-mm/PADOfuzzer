@@ -1,0 +1,283 @@
+openapi: "3.0.0"
+info:
+  title: Nnrf_NFManagement
+  version: "1.0.0"
+  description: |
+    NRF NF Management Service API (TS 29.510).
+    Handles NF registration, update, deregistration, and discovery.
+
+servers:
+  - url: /nnrf-nfm/v1
+    description: NRF NF Management service
+
+paths:
+  /nf-instances/{nfInstanceId}:
+    put:
+      summary: Register a new NF instance
+      operationId: NFRegister
+      tags: [NF Instance]
+      parameters:
+        - name: nfInstanceId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "AMF-001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NFProfile'
+      responses:
+        '201':
+          description: NF instance created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NFProfile'
+        '200':
+          description: NF instance replaced
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NFProfile'
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+
+    patch:
+      summary: Update NF instance profile
+      operationId: NFUpdate
+      tags: [NF Instance]
+      parameters:
+        - name: nfInstanceId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/PatchItem'
+      responses:
+        '200':
+          description: NF profile updated
+
+    delete:
+      summary: Deregister NF instance
+      operationId: NFDeregister
+      tags: [NF Instance]
+      parameters:
+        - name: nfInstanceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: NF deregistered
+
+  /nf-instances:
+    get:
+      summary: Discover NF instances
+      operationId: NFDiscover
+      tags: [NF Discovery]
+      parameters:
+        - name: nfType
+          in: query
+          schema:
+            type: string
+            enum: [AMF, SMF, UPF, NRF, UDM, AUSF, PCF, NSSF, BSF]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResult'
+
+  /oauth2/token:
+    post:
+      summary: Request OAuth2 access token
+      operationId: NFAccessToken
+      tags: [OAuth2]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessTokenRequest'
+      responses:
+        '200':
+          description: Access token granted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessTokenResponse'
+
+components:
+  schemas:
+    NFProfile:
+      type: object
+      required: [nfInstanceId, nfType, nfStatus]
+      properties:
+        nfInstanceId:
+          type: string
+          description: Unique NF instance identifier
+          example: "AMF-001"
+        nfType:
+          type: string
+          enum: [AMF, SMF, UPF, NRF, UDM, AUSF, PCF, NSSF, BSF, SCP]
+        nfStatus:
+          type: string
+          enum: [REGISTERED, SUSPENDED, UNDISCOVERED]
+        ipv4Addresses:
+          type: array
+          items:
+            type: string
+            format: ipv4
+        fqdn:
+          type: string
+          format: hostname
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 65535
+        capacity:
+          type: integer
+          minimum: 0
+          maximum: 65535
+        load:
+          type: integer
+          minimum: 0
+          maximum: 100
+        nfServices:
+          type: array
+          items:
+            $ref: '#/components/schemas/NFService'
+
+    NFService:
+      type: object
+      required: [serviceInstanceId, serviceName]
+      properties:
+        serviceInstanceId:
+          type: string
+        serviceName:
+          type: string
+          enum:
+            - nnrf-nfm
+            - namf-comm
+            - nsmf-pdusession
+            - nudm-uecm
+            - nausf-auth
+            - npcf-smpolicycontrol
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/NFServiceVersion'
+        scheme:
+          type: string
+          enum: [http, https]
+        ipEndPoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/IpEndPoint'
+
+    NFServiceVersion:
+      type: object
+      properties:
+        apiVersionInUri:
+          type: string
+          example: "v1"
+        apiFullVersion:
+          type: string
+          example: "1.0.0"
+
+    IpEndPoint:
+      type: object
+      properties:
+        ipv4Address:
+          type: string
+          format: ipv4
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+
+    PatchItem:
+      type: object
+      required: [op, path]
+      properties:
+        op:
+          type: string
+          enum: [add, replace, remove]
+        path:
+          type: string
+        value:
+          description: Value for add/replace operations
+
+    SearchResult:
+      type: object
+      properties:
+        validityPeriod:
+          type: integer
+        nfInstances:
+          type: array
+          items:
+            $ref: '#/components/schemas/NFProfile'
+
+    AccessTokenRequest:
+      type: object
+      required: [grant_type, nfInstanceId, scope]
+      properties:
+        grant_type:
+          type: string
+          enum: [client_credentials]
+        nfInstanceId:
+          type: string
+        scope:
+          type: string
+        nfInstanceIdList:
+          type: array
+          items:
+            type: string
+
+    AccessTokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          example: "Bearer"
+        expires_in:
+          type: integer
+        scope:
+          type: string
+
+    ProblemDetails:
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        cause:
+          type: string

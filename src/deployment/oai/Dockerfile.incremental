@@ -1,0 +1,26 @@
+# Incremental rebuild: patches OAI NFs with fuzzer fixes
+# Uses existing oai-5gc-fuzz image to skip dependency downloads
+#
+# Build:
+#   docker build -f Dockerfile.incremental -t oai-5gc-fuzz:latest .
+FROM oai-5gc-fuzz:latest AS builder
+
+ARG BUILD_JOBS=2
+ENV BUILD_JOBS=${BUILD_JOBS}
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential cmake \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy patched component sources
+COPY component/ /build/component/
+COPY build_nfs.sh /build/
+
+RUN chmod +x /build/build_nfs.sh && /build/build_nfs.sh
+
+# Runtime stage
+FROM oai-5gc-fuzz:latest
+
+COPY --from=builder /build/build/ /tmp/oai_build/
+COPY install_bins.sh /tmp/
+RUN chmod +x /tmp/install_bins.sh && /tmp/install_bins.sh && rm -rf /tmp/oai_build

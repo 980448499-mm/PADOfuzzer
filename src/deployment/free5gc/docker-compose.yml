@@ -1,0 +1,163 @@
+# free5GC 5G Core deployment for fuzzing
+# Based on free5GC v3.4.x
+# Network: 172.24.0.0/24 (fuzzing-free5gc)
+#
+# free5GC uses Go-based NFs communicating via HTTP/2 SBI
+
+x-free5gc-common: &free5gc-common
+  image: free5gc-fuzz:v4.2.2
+  restart: always
+  networks:
+    fuzzing-free5gc:
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "100m"
+      max-file: "3"
+  cap_add:
+    - NET_ADMIN
+
+services:
+  # ─── Database ───
+  mongodb:
+    image: mongo:6.0
+    container_name: fuzzing-free5gc-mongodb
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.25"]
+    networks:
+      fuzzing-free5gc:
+        ipv4_address: 172.24.0.120
+    volumes:
+      - free5gc_mongodb_data:/data/db
+
+  # ─── Service Registry ───
+  nrf:
+    <<: *free5gc-common
+    container_name: fuzzing-free5gc-nrf
+    networks:
+      fuzzing-free5gc:
+        ipv4_address: 172.24.0.10
+    depends_on:
+      - mongodb
+    volumes:
+      - ./configs/nrfcfg.yaml:/free5gc/config/nrfcfg.yaml:ro
+    command: ["/free5gc/bin/nrf", "-c", "/free5gc/config/nrfcfg.yaml"]
+
+  # ─── Core NFs ───
+  amf:
+    <<: *free5gc-common
+    container_name: fuzzing-free5gc-amf
+    networks:
+      fuzzing-free5gc:
+        ipv4_address: 172.24.0.20
+    depends_on:
+      - nrf
+    volumes:
+      - ./configs/amfcfg.yaml:/free5gc/config/amfcfg.yaml:ro
+    command: ["/free5gc/bin/amf", "-c", "/free5gc/config/amfcfg.yaml"]
+    ports:
+      - "38412/sctp"
+
+  smf:
+    <<: *free5gc-common
+    container_name: fuzzing-free5gc-smf
+    networks:
+      fuzzing-free5gc:
+        ipv4_address: 172.24.0.30
+    depends_on:
+      - nrf
+    volumes:
+      - ./configs/smfcfg.yaml:/free5gc/config/smfcfg.yaml:ro
+      - ./configs/uerouting.yaml:/free5gc/config/uerouting.yaml:ro
+    command: ["/free5gc/bin/smf", "-c", "/free5gc/config/smfcfg.yaml", "-u", "/free5gc/config/uerouting.yaml"]
+
+  upf:
+    <<: *free5gc-common
+    container_name: fuzzing-free5gc-upf
+    networks:
+      fuzzing-free5gc:
+        ipv4_address: 172.24.0.40
+    volumes:
+      - ./configs/upfcfg.yaml:/free5gc/config/upfcfg.yaml:ro
+    command: ["/free5gc/bin/upf", "-c", "/free5gc/config/upfcfg.yaml"]
+    ports:
+      - "2152/udp"
+      - "8805/udp"
+
+  ausf:
+    <<: *free5gc-common
+    container_name: fuzzing-free5gc-ausf
+    networks:
+      fuzzing-free5gc:
+        ipv4_address: 172.24.0.50
+    depends_on:
+      - nrf
+    volumes:
+      - ./configs/ausfcfg.yaml:/free5gc/config/ausfcfg.yaml:ro
+    command: ["/free5gc/bin/ausf", "-c", "/free5gc/config/ausfcfg.yaml"]
+
+  udm:
+    <<: *free5gc-common
+    container_name: fuzzing-free5gc-udm
+    networks:
+      fuzzing-free5gc:
+        ipv4_address: 172.24.0.60
+    depends_on:
+      - nrf
+    volumes:
+      - ./configs/udmcfg.yaml:/free5gc/config/udmcfg.yaml:ro
+    command: ["/free5gc/bin/udm", "-c", "/free5gc/config/udmcfg.yaml"]
+
+  udr:
+    <<: *free5gc-common
+    container_name: fuzzing-free5gc-udr
+    networks:
+      fuzzing-free5gc:
+        ipv4_address: 172.24.0.70
+    depends_on:
+      - nrf
+    volumes:
+      - ./configs/udrcfg.yaml:/free5gc/config/udrcfg.yaml:ro
+    command: ["/free5gc/bin/udr", "-c", "/free5gc/config/udrcfg.yaml"]
+
+  pcf:
+    <<: *free5gc-common
+    container_name: fuzzing-free5gc-pcf
+    networks:
+      fuzzing-free5gc:
+        ipv4_address: 172.24.0.80
+    depends_on:
+      - nrf
+    volumes:
+      - ./configs/pcfcfg.yaml:/free5gc/config/pcfcfg.yaml:ro
+    command: ["/free5gc/bin/pcf", "-c", "/free5gc/config/pcfcfg.yaml"]
+
+  nssf:
+    <<: *free5gc-common
+    container_name: fuzzing-free5gc-nssf
+    networks:
+      fuzzing-free5gc:
+        ipv4_address: 172.24.0.90
+    depends_on:
+      - nrf
+    volumes:
+      - ./configs/nssfcfg.yaml:/free5gc/config/nssfcfg.yaml:ro
+    command: ["/free5gc/bin/nssf", "-c", "/free5gc/config/nssfcfg.yaml"]
+
+  # WebUI for subscriber management (disabled to save memory; not used by SBI fuzzing)
+  # webui:
+  #   <<: *free5gc-common
+  #   container_name: fuzzing-free5gc-webui
+  #   networks:
+  #     fuzzing-free5gc:
+  #       ipv4_address: 172.24.0.130
+  #   depends_on:
+  #     - mongodb
+  #   command: ["/free5gc/bin/webconsole"]
+  #   ports:
+  #     - "5000"
+
+networks:
+  fuzzing-free5gc: { name: fuzzing-free5gc, external: true }
+
+volumes:
+  free5gc_mongodb_data:

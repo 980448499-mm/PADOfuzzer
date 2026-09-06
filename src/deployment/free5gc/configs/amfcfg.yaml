@@ -1,0 +1,91 @@
+# AMF — Access and Mobility Management Function (free5GC)
+info:
+  version: 1.0.9
+  description: AMF configuration for fuzzing
+
+configuration:
+  amfName: AMF-fuzzing
+  ngapIpList:
+    - 172.24.0.20
+  sbi:
+    scheme: http
+    registerIPv4: 172.24.0.20
+    bindingIPv4: 172.24.0.20
+    port: 8000
+  serviceNameList:
+    - namf-comm
+    - namf-evts
+    - namf-mt
+    - namf-loc
+  servedGuamiList:
+    - plmnId:
+        mcc: "208"
+        mnc: "93"
+      amfId: "cafe00"
+  supportTaiList:
+    - plmnId:
+        mcc: "208"
+        mnc: "93"
+      tac: "000001"
+  supportTAIList:
+    - plmnId:
+        mcc: "208"
+        mnc: "93"
+      tac: "000001"
+  plmnSupportList:
+    - plmnId:
+        mcc: "208"
+        mnc: "93"
+      snssaiList:
+        - sst: 1
+          sd: "010203"
+        - sst: 1
+          sd: "112233"
+  supportDnnList:
+    - internet
+  networkName:
+    full: "free5GC"
+    short: "f5G"
+  t3502Value: 720
+  t3512Value: 3600
+  t3513:
+    enable: true
+    expireTime: 10s
+  t3522:
+    enable: true
+    expireTime: 10s
+  t3550:
+    enable: true
+    expireTime: 10s
+  t3560:
+    enable: true
+    expireTime: 10s
+  t3565:
+    enable: true
+    expireTime: 10s
+  t3570:
+    enable: true
+    expireTime: 10s
+  t3555:
+    enable: true
+    expireTime: 10s
+  security:
+    integrityOrder:
+      - NIA2
+      - NIA0
+      - NIA1
+    cipheringOrder:
+      - NEA0
+      - NEA2
+      - NEA1
+  networkFeatureSupport5GS:
+    enable: true
+    length: 2
+    imsVoPS: 0
+    interworkingWithoutN26: 0
+  nrfUri: http://172.24.0.10:8000
+
+logger:
+  enable: true
+  reportCaller: true
+  level: debug

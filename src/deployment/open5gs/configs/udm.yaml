@@ -1,0 +1,20 @@
+logger:
+  file:
+    path: /var/log/open5gs/udm.log
+  level: info
+
+udm:
+  hnet:
+    - id: 1
+      scheme: 1
+      key: /open5gs/install/etc/open5gs/hnet/curve25519-1.key
+    - id: 2
+      scheme: 2
+      key: /open5gs/install/etc/open5gs/hnet/secp256r1-2.key
+  sbi:
+    server:
+      - address: 172.23.0.60
+        port: 7777
+    client:
+      nrf:
+        - uri: http://172.23.0.10:7777

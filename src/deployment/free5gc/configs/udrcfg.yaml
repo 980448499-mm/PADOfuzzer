@@ -1,0 +1,20 @@
+info:
+  version: 1.1.0
+  description: UDR configuration for fuzzing
+
+configuration:
+  sbi:
+    scheme: http
+    registerIPv4: 172.24.0.70
+    bindingIPv4: 172.24.0.70
+    port: 8000
+  dbConnectorType: mongodb
+  mongodb:
+    name: free5gc
+    url: mongodb://172.24.0.120:27017
+  nrfUri: http://172.24.0.10:8000
+
+logger:
+  enable: true
+  reportCaller: true
+  level: info

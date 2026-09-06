@@ -1,0 +1,9 @@
+{
+  "nfInstanceId": "AMF-001",
+  "nfType": "AMF",
+  "nfStatus": "REGISTERED",
+  "ipv4Addresses": ["10.0.0.1"],
+  "fqdn": "amf.example.com",
+  "priority": 1,
+  "capacity": 100
+}

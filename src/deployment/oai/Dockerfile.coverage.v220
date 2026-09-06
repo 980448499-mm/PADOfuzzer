@@ -1,0 +1,125 @@
+# OAI v2.2.0 AMF/SMF/AUSF Coverage Build
+# Builds all 3 NFs with gcov coverage instrumentation from v2.2.0 sources.
+# Usage: docker build -t oai-5gc-fuzz-coverage-v220:latest -f Dockerfile.coverage.v220 /tmp/oai-v220-src
+
+ARG BASE_IMAGE=ubuntu:jammy
+
+# ─── BASE: install deps for all NFs ──────────────────────────────
+FROM ${BASE_IMAGE} AS oai-base
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Paris
+ENV IS_DOCKERFILE=1
+
+RUN apt-get update && apt-get upgrade --yes && apt-get install --yes \
+    psmisc git build-essential cmake ca-certificates pkg-config \
+    libssl-dev libcurl4-openssl-dev libmysqlclient-dev \
+    libconfig++-dev libboost-all-dev libevent-dev \
+    libgnutls28-dev libgcrypt-dev libsctp-dev \
+    libspdlog-dev libmicrohttpd-dev nettle-dev libfmt-dev \
+    libyaml-cpp-dev rapidjson-dev nlohmann-json3-dev libcrypto++-dev \
+    gcc-12 g++-12 libnghttp2-dev libev-dev libsqlite3-dev \
+    autoconf automake libtool libldap2-dev libkrb5-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git config --global https.postBuffer 123289600 && \
+    git config --global http.sslverify false
+
+# ─── BUILDER: compile NFs with coverage ──────────────────────────
+FROM oai-base AS oai-builder
+
+ARG BUILD_JOBS=2
+ENV BUILD_JOBS=${BUILD_JOBS}
+
+# Copy all NF sources
+COPY oai-amf/ /openair-amf/
+COPY oai-smf/ /openair-smf/
+COPY oai-ausf/ /openair-ausf/
+
+# Install deps for each NF (uses their build scripts)
+WORKDIR /openair-amf/build/scripts
+RUN ./build_amf --install-deps --force 2>&1 | tail -20 || true
+
+WORKDIR /openair-smf/build/scripts
+RUN ./build_smf --install-deps --force 2>&1 | tail -20 || true
+
+WORKDIR /openair-ausf/build/scripts
+RUN ./build_ausf --install-deps --force 2>&1 | tail -20 || true
+
+RUN ldconfig
+
+# Remove system fmt v8 to avoid conflict with source-built fmt v9
+RUN rm -f /usr/lib/x86_64-linux-gnu/libfmt* /usr/lib/x86_64-linux-gnu/pkgconfig/fmt.pc && \
+    rm -rf /usr/include/fmt && ldconfig
+
+ENV COV_FLAGS="-fprofile-arcs -ftest-coverage"
+
+# Patch each build script to add coverage cmake flags
+RUN for nf_dir in /openair-amf /openair-smf /openair-ausf; do \
+      script=$(find $nf_dir/build/scripts -name "build_*" -not -name "build_helper*" -type f | head -1); \
+      if [ -n "$script" ]; then \
+        sed -i 's|cmake_args="$cmake_args  -DBUILD_SHARED_LIBS=OFF"|cmake_args="$cmake_args  -DBUILD_SHARED_LIBS=OFF -DCMAKE_C_FLAGS=\"'"$COV_FLAGS"'\" -DCMAKE_CXX_FLAGS=\"'"$COV_FLAGS"'\" -DCMAKE_EXE_LINKER_FLAGS=\"-fprofile-arcs -lgcov\""|' "$script"; \
+        echo "Patched: $script"; \
+      fi; \
+    done
+
+# Build AMF with coverage
+WORKDIR /openair-amf/build/scripts
+RUN export OPENAIRCN_DIR=/openair-amf && \
+    ./build_amf --clean --Verbose --build-type RelWithDebInfo --jobs 2>&1 | tail -30 && \
+    cp /openair-amf/build/amf/build/amf /usr/local/bin/oai_amf && \
+    echo "OK: AMF built with coverage" || echo "FAILED: AMF"
+
+# Build SMF with coverage
+WORKDIR /openair-smf/build/scripts
+RUN export OPENAIRCN_DIR=/openair-smf && \
+    ./build_smf --clean --Verbose --build-type RelWithDebInfo --jobs 2>&1 | tail -30 && \
+    cp /openair-smf/build/smf/build/smf /usr/local/bin/oai_smf && \
+    echo "OK: SMF built with coverage" || echo "FAILED: SMF"
+
+# Build AUSF with coverage
+WORKDIR /openair-ausf/build/scripts
+RUN export OPENAIRCN_DIR=/openair-ausf && \
+    ./build_ausf --clean --Verbose --build-type RelWithDebInfo --jobs 2>&1 | tail -30 && \
+    cp /openair-ausf/build/ausf/build/ausf /usr/local/bin/oai_ausf && \
+    echo "OK: AUSF built with coverage" || echo "FAILED: AUSF"
+
+# ─── RUNTIME: minimal image with coverage support ────────────────
+FROM ${BASE_IMAGE}
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Paris
+
+RUN apt-get update && apt-get install --yes --no-install-recommends \
+    libssl3 libcurl4 libmysqlclient21 libconfig++9v5 \
+    libboost-system1.74.0 libboost-thread1.74.0 \
+    libevent-2.1-7 libevent-core-2.1-7 libevent-extra-2.1-7 \
+    libgnutls30 libgcrypt20 libsctp1 libnghttp2-14 \
+    libmicrohttpd12 libspdlog1 libyaml-cpp0.7 libfmt8 libnettle8 \
+    lksctp-tools iproute2 tcpdump \
+    libasan6 libev4 libboost-date-time1.74.0 libcrypto++8 \
+    libboost-chrono1.74.0 libsqlite3-0 libldap-2.5-0 \
+    libcurl4-gnutls-dev libpsl5 librtmp1 \
+    gcc-12 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /etc/oai /var/log/oai /tmp/coverage
+
+# Copy shared libraries built from source
+COPY --from=oai-builder /usr/local/lib/ /usr/local/lib/
+RUN ldconfig
+
+# Copy coverage-instrumented binaries
+COPY --from=oai-builder /usr/local/bin/oai_amf /usr/local/bin/
+COPY --from=oai-builder /usr/local/bin/oai_smf /usr/local/bin/
+COPY --from=oai-builder /usr/local/bin/oai_ausf /usr/local/bin/
+
+# Copy source trees + build trees (gcno files needed by gcov)
+COPY --from=oai-builder /openair-amf /openair-amf/
+COPY --from=oai-builder /openair-smf /openair-smf/
+COPY --from=oai-builder /openair-ausf /openair-ausf/
+
+ENV GCOV_PREFIX=/tmp/coverage \
+    GCOV_PREFIX_STRIP=0
+
+WORKDIR /etc/oai

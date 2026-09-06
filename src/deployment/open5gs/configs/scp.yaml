@@ -1,0 +1,13 @@
+logger:
+  file:
+    path: /var/log/open5gs/scp.log
+  level: info
+
+scp:
+  sbi:
+    server:
+      - address: 172.23.0.110
+        port: 7777
+    client:
+      nrf:
+        - uri: http://172.23.0.10:7777

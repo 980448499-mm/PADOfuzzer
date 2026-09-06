@@ -1,0 +1,94 @@
+-- NGAP Procedure Definitions
+-- TS 38.413 V17.4.0 (2023-01)
+-- Key procedures used by the NGAP codec
+
+NGAP-PROCEDURES ::= BEGIN
+
+IMPORTS
+    AMF-UE-NGAP-ID, RAN-UE-NGAP-ID, NAS-PDU, GUAMI,
+    PDUSessionID, S-NSSAI, TransportLayerAddress, GTP-TEI,
+    UEAggregateMaximumBitRate, Cause
+FROM NGAP-COMMON;
+
+-- ─── NG Setup ─────────────────────────────────────────────────
+
+NGSetupRequest ::= SEQUENCE {
+    protocolIEs    SEQUENCE (SIZE (1..65535)) OF ProtocolIE-Field
+}
+
+NGSetupResponse ::= SEQUENCE {
+    protocolIEs    SEQUENCE (SIZE (1..65535)) OF ProtocolIE-Field
+}
+
+-- ─── Initial UE Message ───────────────────────────────────────
+
+InitialUEMessage ::= SEQUENCE {
+    protocolIEs    SEQUENCE (SIZE (1..65535)) OF ProtocolIE-Field {
+        {ID id-RAN-UE-NGAP-ID    CRITICALITY reject TYPE RAN-UE-NGAP-ID    PRESENCE mandatory},
+        {ID id-NAS-PDU           CRITICALITY reject TYPE NAS-PDU           PRESENCE mandatory},
+        {ID id-UserLocationInfo  CRITICALITY reject TYPE UserLocationInfo  PRESENCE mandatory},
+        {ID id-RRCEstablishmentCause CRITICALITY ignore TYPE RRCEstablishmentCause PRESENCE mandatory},
+        {ID id-AMFSetID          CRITICALITY ignore TYPE AMFSetID          PRESENCE optional}
+    }
+}
+
+-- ─── Downlink/Uplink NAS Transport ────────────────────────────
+
+DownlinkNASTransport ::= SEQUENCE {
+    protocolIEs    SEQUENCE (SIZE (1..65535)) OF ProtocolIE-Field {
+        {ID id-AMF-UE-NGAP-ID   CRITICALITY reject TYPE AMF-UE-NGAP-ID    PRESENCE mandatory},
+        {ID id-RAN-UE-NGAP-ID   CRITICALITY reject TYPE RAN-UE-NGAP-ID    PRESENCE mandatory},
+        {ID id-NAS-PDU          CRITICALITY reject TYPE NAS-PDU           PRESENCE mandatory}
+    }
+}
+
+UplinkNASTransport ::= SEQUENCE {
+    protocolIEs    SEQUENCE (SIZE (1..65535)) OF ProtocolIE-Field {
+        {ID id-AMF-UE-NGAP-ID   CRITICALITY reject TYPE AMF-UE-NGAP-ID    PRESENCE mandatory},
+        {ID id-RAN-UE-NGAP-ID   CRITICALITY reject TYPE RAN-UE-NGAP-ID    PRESENCE mandatory},
+        {ID id-NAS-PDU          CRITICALITY reject TYPE NAS-PDU           PRESENCE mandatory},
+        {ID id-UserLocationInfo CRITICALITY ignore TYPE UserLocationInfo  PRESENCE optional}
+    }
+}
+
+-- ─── PDU Session Resource Setup ───────────────────────────────
+
+PDUSessionResourceSetupRequest ::= SEQUENCE {
+    protocolIEs    SEQUENCE (SIZE (1..65535)) OF ProtocolIE-Field
+}
+
+PDUSessionResourceSetupResponse ::= SEQUENCE {
+    protocolIEs    SEQUENCE (SIZE (1..65535)) OF ProtocolIE-Field
+}
+
+-- ─── UE Context Release ──────────────────────────────────────
+
+UEContextReleaseCommand ::= SEQUENCE {
+    protocolIEs    SEQUENCE (SIZE (1..65535)) OF ProtocolIE-Field {
+        {ID id-AMF-UE-NGAP-ID   CRITICALITY reject TYPE AMF-UE-NGAP-ID    PRESENCE mandatory},
+        {ID id-RAN-UE-NGAP-ID   CRITICALITY reject TYPE RAN-UE-NGAP-ID    PRESENCE mandatory},
+        {ID id-Cause            CRITICALITY ignore TYPE Cause             PRESENCE mandatory}
+    }
+}
+
+UEContextReleaseComplete ::= SEQUENCE {
+    protocolIEs    SEQUENCE (SIZE (1..65535)) OF ProtocolIE-Field
+}
+
+-- ─── ProtocolIE-Field container ───────────────────────────────
+
+ProtocolIE-Field ::= SEQUENCE {
+    id             ProtocolIE-ID,
+    criticality    Criticality,
+    value          ProtocolIE-Value
+}
+
+ProtocolIE-Value ::= CHOICE {
+    amf-UE-NGAP-ID    AMF-UE-NGAP-ID,
+    ran-UE-NGAP-ID    RAN-UE-NGAP-ID,
+    nAS-PDU           NAS-PDU,
+    gUAMI             GUAMI,
+    ...
+}
+
+END

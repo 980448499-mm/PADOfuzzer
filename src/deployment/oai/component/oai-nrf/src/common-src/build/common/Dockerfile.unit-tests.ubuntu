@@ -1,0 +1,55 @@
+#/*
+# * SPDX-License-Identifier: LicenseRef-CSSL-1.0
+# */
+
+#---------------------------------------------------------------------
+#
+# Dockerfile for the Open-Air-Interface AMF service
+#   Valid for Ubuntu-20.04 (focal),
+#             Ubuntu-22.04 (jammy)
+#
+#---------------------------------------------------------------------
+
+#---------------------------------------------------------------------
+# BASE IMAGE
+#---------------------------------------------------------------------
+ARG BASE_IMAGE=ubuntu:jammy
+FROM $BASE_IMAGE as common-src-unit-tests
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Paris
+ENV IS_DOCKERFILE=1
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get upgrade --yes && \
+    DEBIAN_FRONTEND=noninteractive apt-get install --yes \
+        git \
+        build-essential \
+        cmake \
+        make \
+        libasio-dev \
+        libboost-all-dev \
+        libasan6 \
+        googletest-tools \
+        libgoogle-glog-dev \
+        libgtest-dev \
+        libtool \
+        libfmt-dev \
+        libspdlog-dev \
+        nlohmann-json3-dev \
+        libyaml-cpp-dev \
+        pkg-config
+
+ENV OPENAIRCN_DIR=/openair-unit-tests
+WORKDIR /openair-unit-tests
+COPY . /openair-unit-tests
+
+# Building all unit-tests
+WORKDIR /openair-unit-tests/build/common/_build
+RUN cmake .. \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_SHARED_LIBS=OFF && \
+    make -j`nproc` all
+
+# Running all unit-tests
+WORKDIR /openair-unit-tests/build/common/_build/test
+RUN ctest -V

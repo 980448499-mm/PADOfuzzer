@@ -1,0 +1,29 @@
+info:
+  version: 1.0.2
+  description: PCF configuration for fuzzing
+
+configuration:
+  pcfName: PCF-fuzzing
+  sbi:
+    scheme: http
+    registerIPv4: 172.24.0.80
+    bindingIPv4: 172.24.0.80
+    port: 8000
+  timeFormat: "2019-01-02 15:04:05"
+  defaultBdtRefId: BdtPolicyId-
+  nrfUri: http://172.24.0.10:8000
+  serviceList:
+    - serviceName: npcf-am-policy-control
+    - serviceName: npcf-smpolicycontrol
+      suppFeat: 3fff
+    - serviceName: npcf-policyauthorization
+      suppFeat: 3
+    - serviceName: npcf-bdtpolicycontrol
+    - serviceName: npcf-ue-policy-control
+  mongodb:
+    name: free5gc
+    url: mongodb://172.24.0.120:27017
+  locality: area1
+
+logger:
+  level: info

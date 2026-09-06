@@ -1,0 +1,81 @@
+# 5G Protocol Fuzzing Framework Configuration
+
+fuzzer:
+  max_iterations: 1000000
+  max_time_seconds: 86400  # 24 hours per campaign
+  seed_dir: "./corpus"
+  results_dir: "./results"
+  checkpoint_interval: 1000  # Save state every N iterations
+
+protocols:
+  ngap:
+    enabled: true
+    port: 38412
+    transport: sctp
+  nas:
+    enabled: true
+    encapsulated_in: ngap
+  sbi:
+    enabled: true
+    port: 80
+    transport: http2
+  pfcp:
+    enabled: true
+    port: 8805
+    transport: udp
+  gtpu:
+    enabled: true
+    port: 2152
+    transport: udp
+
+targets:
+  open5gs:
+    enabled: true
+    docker_compose_dir: "./src/deployment/open5gs"
+    subnet: "172.23.0.0/24"
+  free5gc:
+    enabled: true
+    docker_compose_dir: "./src/deployment/free5gc"
+    subnet: "172.24.0.0/24"
+  oai:
+    enabled: true
+    docker_compose_dir: "./src/deployment/oai"
+    subnet: "172.25.0.0/24"
+
+monitoring:
+  log_harvest_interval: 1.0  # seconds
+  coverage_collect_interval: 10.0
+  metrics_port: 9090
+  pcap_enabled: false  # High overhead, enable for debugging
+
+mutation:
+  strategies:
+    bit_flip:
+      enabled: true
+      weight: 0.15
+    structure_preserving:
+      enabled: true
+      weight: 0.25
+    state_aware:
+      enabled: true
+      weight: 0.25
+    cross_protocol:
+      enabled: true
+      weight: 0.15
+    sequence_level:
+      enabled: true
+      weight: 0.10
+    http2_specific:
+      enabled: true
+      weight: 0.10
+
+fsm_learner:
+  algorithm: "edsm"  # Evidence-Driven State Merging
+  min_traces: 10
+  compatibility_threshold: 0.85
+  merge_confidence: 0.95
+
+experiment:
+  runs_per_config: 3
+  hours_per_run: 24
+  random_seed: 42

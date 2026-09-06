@@ -1,0 +1,84 @@
+info:
+  version: 1.0.7
+  description: SMF configuration for fuzzing
+
+configuration:
+  smfName: SMF-fuzzing
+  sbi:
+    scheme: http
+    registerIPv4: 172.24.0.30
+    bindingIPv4: 172.24.0.30
+    port: 8000
+  serviceNameList:
+    - nsmf-pdusession
+    - nsmf-event-exposure
+    - nsmf-oam
+  snssaiInfos:
+    - sNssai:
+        sst: 1
+        sd: "010203"
+      dnnInfos:
+        - dnn: internet
+          dns:
+            ipv4: 8.8.8.8
+    - sNssai:
+        sst: 1
+        sd: "112233"
+      dnnInfos:
+        - dnn: internet
+          dns:
+            ipv4: 8.8.8.8
+  plmnList:
+    - mcc: "208"
+      mnc: "93"
+  locality: area1
+  pfcp:
+    nodeID: 172.24.0.30
+    listenAddr: 172.24.0.30
+    externalAddr: 172.24.0.30
+  userplaneInformation:
+    upNodes:
+      gNB1:
+        type: AN
+      UPF:
+        type: UPF
+        nodeID: 172.24.0.40
+        addr: 172.24.0.40
+        sNssaiUpfInfos:
+          - sNssai:
+              sst: 1
+              sd: "010203"
+            dnnUpfInfoList:
+              - dnn: internet
+                pools:
+                  - cidr: 10.60.0.0/16
+          - sNssai:
+              sst: 1
+              sd: "112233"
+            dnnUpfInfoList:
+              - dnn: internet
+                pools:
+                  - cidr: 10.61.0.0/16
+        interfaces:
+          - interfaceType: N3
+            endpoints:
+              - 172.24.0.40
+            networkInstances:
+              - internet
+    links:
+      - A: gNB1
+        B: UPF
+  t3591:
+    enable: true
+    expireTime: 16s
+    maxRetryTimes: 3
+  t3592:
+    enable: true
+    expireTime: 16s
+    maxRetryTimes: 3
+  nrfUri: http://172.24.0.10:8000
+
+logger:
+  enable: true
+  reportCaller: true
+  level: info
